@@ -3,13 +3,13 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
-#define WINDOW_WIDTH 800
-#define WINDOW_HEIGHT 600
+#define WINDOW_WIDTH 600
+#define WINDOW_HEIGHT 800
 
 #define PLAYER_WIDTH 7
 #define PLAYER_HEIGHT 100
 #define BALL_SIZE 15
-#define BALL_SPEED 600.0f
+#define BALL_SPEED 700.0f
 
 #define FRAME_RATE 300.0f
 #define CONTROL_SPEED 600.0f
