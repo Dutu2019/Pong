@@ -1,7 +1,10 @@
 #include "main.h"
+#include "tinyttf.h"
 #include <unistd.h>
+#include <stdbool.h>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
+#include <SDL3_ttf/SDL_ttf.h>
 
 #define WINDOW_WIDTH 600
 #define WINDOW_HEIGHT 800
@@ -14,13 +17,29 @@
 #define FRAME_RATE 300.0f
 #define CONTROL_SPEED 600.0f
 
+static SDL_Window *window = NULL;
+static SDL_Renderer *renderer = NULL;
+static TTF_Font *font = NULL;
+static SDL_Texture *texture = NULL;
+
 int main(int argc, char **argv) {
     SDL_Init(SDL_INIT_VIDEO);
     SDL_Time time;
     SDL_GetCurrentTime(&time);
     SDL_srand(time);
-    SDL_Window *window = SDL_CreateWindow("Pong", WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_RESIZABLE);
-    SDL_Renderer *renderer = SDL_CreateRenderer(window, NULL);
+    window = SDL_CreateWindow("Pong", WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_RESIZABLE);
+    renderer = SDL_CreateRenderer(window, NULL);
+
+    if (!TTF_Init()) {
+        SDL_Log("Couldn't initialise SDL_ttf: %s\n", SDL_GetError());
+        TTF_Quit();
+    }
+
+    font = TTF_OpenFontIO(SDL_IOFromConstMem(tiny_ttf, tiny_ttf_len), true, 18.0f);
+    if (!font) {
+        SDL_Log("Couldn't open font: %s\n", SDL_GetError());
+        return SDL_APP_FAILURE;
+    }
 
     // Init players and ball
     SDL_FRect player1, player2;
@@ -47,6 +66,26 @@ int main(int argc, char **argv) {
     }
 
     return 0;
+}
+
+bool updateScore() {
+    SDL_Surface *text = TTF_RenderText_Blended(font, "Hello World!", 0, (SDL_Color) {255, 255, 255, 255});
+    if (text) {
+        texture = SDL_CreateTextureFromSurface(renderer, text);
+        SDL_DestroySurface(text);
+    }
+    if (!texture) {
+        SDL_Log("Couldn't create text: %s\n", SDL_GetError());
+        return false;
+    }
+
+    SDL_FRect *rect;
+    rect->x = WINDOW_WIDTH/2;
+    rect->y = 10;
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+    SDL_RenderTexture(renderer, texture, NULL, rect);
+    SDL_RenderPresent(renderer);
 }
 
 void initBall(Ball *ball) {
