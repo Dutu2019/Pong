@@ -59,6 +59,10 @@ int main(int argc, char **argv) {
                 is_running = false;
             }
         }
+        // Clear previous frame
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black
+        SDL_RenderClear(renderer);
+
         updatePos(&player1, &player2, &ball);
         checkCollisions(&player1, &player2, &ball);
         renderObjects(renderer, &player1, &player2, &ball);
@@ -68,24 +72,8 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-bool updateScore() {
-    SDL_Surface *text = TTF_RenderText_Blended(font, "Hello World!", 0, (SDL_Color) {255, 255, 255, 255});
-    if (text) {
-        texture = SDL_CreateTextureFromSurface(renderer, text);
-        SDL_DestroySurface(text);
-    }
-    if (!texture) {
-        SDL_Log("Couldn't create text: %s\n", SDL_GetError());
-        return false;
-    }
+void updateScore() {
 
-    SDL_FRect *rect;
-    rect->x = WINDOW_WIDTH/2;
-    rect->y = 10;
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    SDL_RenderClear(renderer);
-    SDL_RenderTexture(renderer, texture, NULL, rect);
-    SDL_RenderPresent(renderer);
 }
 
 void initBall(Ball *ball) {
@@ -106,8 +94,26 @@ void changeBallDirection(Ball *ball, float angle) {
 }
 
 void renderObjects(SDL_Renderer *renderer, SDL_FRect *player1_rect, SDL_FRect *player2_rect, Ball *ball) {
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black
-    SDL_RenderClear(renderer);
+    // Create score texture
+    SDL_Surface *text = TTF_RenderText_Blended(font, "0 - 0", 0, (SDL_Color) {255, 255, 255, 255});
+    if (text) {
+        texture = SDL_CreateTextureFromSurface(renderer, text);
+        SDL_DestroySurface(text);
+    }
+    if (!texture) {
+        SDL_Log("Couldn't create text: %s\n", SDL_GetError());
+    }
+
+    SDL_FRect rect = {
+        .x = WINDOW_WIDTH/2,
+        .y = 100.0f,
+        .w = 0,
+        .h = 0,
+    };
+
+    // Get texture dimensions to set width/height and center horizontally
+    SDL_GetTextureSize(texture, &rect.w, &rect.h);
+    rect.x -= rect.w / 2.0f;
 
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // White
     // Render players
@@ -115,6 +121,8 @@ void renderObjects(SDL_Renderer *renderer, SDL_FRect *player1_rect, SDL_FRect *p
     SDL_RenderFillRect(renderer, player2_rect);
     // Render ball
     SDL_RenderFillRect(renderer, &ball->rect);
+    // Render score
+    SDL_RenderTexture(renderer, texture, NULL, &rect);
 
     // Render the frame
     SDL_RenderPresent(renderer);
@@ -141,7 +149,7 @@ void checkCollisions(SDL_FRect *player1, SDL_FRect *player2, Ball *ball) {
     if (ball->rect.y <= 0 || ball->rect.y >= WINDOW_HEIGHT-BALL_SIZE) ball->yspeed = -ball->yspeed;
     // left and right walls
     if (ball->rect.x <= 0 || ball->rect.x >= WINDOW_WIDTH-BALL_SIZE) {
-        SDL_Delay(1000);
+        updateScore();
         initBall(ball);
         initPlayers(player1, player2);
     }
