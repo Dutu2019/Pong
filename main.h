@@ -23,7 +23,7 @@ void updatePos(SDL_FRect *player1, SDL_FRect *player2, Ball *ball);
 void initBall(Ball *ball);
 void initPlayers(SDL_FRect *player1, SDL_FRect *player2);
 void changeBallDirection(Ball *ball, float angle);
-void checkCollisions(SDL_FRect *player1, SDL_FRect *player2, Ball *ball);
+void checkCollisionsAndUpdateScore(SDL_FRect *player1, SDL_FRect *player2, Ball *ball);
 void updateScore();
 
 #endif

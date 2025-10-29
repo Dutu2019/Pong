@@ -1,5 +1,6 @@
 #include "main.h"
 #include "tinyttf.h"
+#include <stdio.h>
 #include <unistd.h>
 #include <stdbool.h>
 #include <SDL3/SDL.h>
@@ -21,6 +22,8 @@ static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
 static TTF_Font *font = NULL;
 static SDL_Texture *texture = NULL;
+static bool gameEnded = false;
+static long score = 0;
 
 int main(int argc, char **argv) {
     SDL_Init(SDL_INIT_VIDEO);
@@ -53,9 +56,6 @@ int main(int argc, char **argv) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_EVENT_QUIT) {
-                SDL_DestroyRenderer(renderer);
-                SDL_DestroyWindow(window);
-                SDL_Quit();
                 is_running = false;
             }
         }
@@ -64,16 +64,15 @@ int main(int argc, char **argv) {
         SDL_RenderClear(renderer);
 
         updatePos(&player1, &player2, &ball);
-        checkCollisions(&player1, &player2, &ball);
+        checkCollisionsAndUpdateScore(&player1, &player2, &ball);
         renderObjects(renderer, &player1, &player2, &ball);
         SDL_Delay(1000/FRAME_RATE);
     }
-
+    // exit sequence
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
     return 0;
-}
-
-void updateScore() {
-
 }
 
 void initBall(Ball *ball) {
@@ -95,7 +94,9 @@ void changeBallDirection(Ball *ball, float angle) {
 
 void renderObjects(SDL_Renderer *renderer, SDL_FRect *player1_rect, SDL_FRect *player2_rect, Ball *ball) {
     // Create score texture
-    SDL_Surface *text = TTF_RenderText_Blended(font, "0 - 0", 0, (SDL_Color) {255, 255, 255, 255});
+    char stringified[10];
+    sprintf(stringified, "%u - %u", (unsigned int) score >> 16, (unsigned int) score & 0xFFFF);
+    SDL_Surface *text = TTF_RenderText_Blended(font, stringified, 0, (SDL_Color) {255, 255, 255, 255});
     if (text) {
         texture = SDL_CreateTextureFromSurface(renderer, text);
         SDL_DestroySurface(text);
@@ -144,14 +145,23 @@ void updatePos(SDL_FRect *player1, SDL_FRect *player2, Ball *ball) {
     if (ball->yspeed > 0.0f) ball->rect.y = MIN((float)WINDOW_HEIGHT-BALL_SIZE, ball->rect.y);
 }
 
-void checkCollisions(SDL_FRect *player1, SDL_FRect *player2, Ball *ball) {
+void checkCollisionsAndUpdateScore(SDL_FRect *player1, SDL_FRect *player2, Ball *ball) {
     // top and bottom walls
     if (ball->rect.y <= 0 || ball->rect.y >= WINDOW_HEIGHT-BALL_SIZE) ball->yspeed = -ball->yspeed;
     // left and right walls
-    if (ball->rect.x <= 0 || ball->rect.x >= WINDOW_WIDTH-BALL_SIZE) {
-        updateScore();
+    if (ball->rect.x <= 0) {
+        gameEnded = true;
+        score += 1;
+    } else if (ball->rect.x >= WINDOW_WIDTH-BALL_SIZE) {
+        gameEnded = true;
+        score += 1<<16;
+    }
+    // reset map on game end
+    if (gameEnded) {
         initBall(ball);
-        initPlayers(player1, player2);
+        // initPlayers(player1, player2);
+        SDL_Delay(500);
+        gameEnded = false;
     }
 
     // player1-ball
