@@ -13,9 +13,9 @@
 #define PLAYER_WIDTH 7
 #define PLAYER_HEIGHT 100
 #define BALL_SIZE 15
-#define BALL_SPEED 700.0f
 
 #define FRAME_RATE 300.0f
+#define BALL_SPEED 700.0f
 #define CONTROL_SPEED 600.0f
 
 static SDL_Window *window = NULL;
@@ -24,6 +24,7 @@ static TTF_Font *font = NULL;
 static SDL_Texture *texture = NULL;
 static bool gameEnded = false;
 static long score = 0;
+static float SPEED_MULT = 1;
 
 int main(int argc, char **argv) {
     SDL_Init(SDL_INIT_VIDEO);
@@ -78,8 +79,8 @@ int main(int argc, char **argv) {
 void initBall(Ball *ball) {
     float angle = SDL_PI_F*SDL_roundf(SDL_randf());
     ball->rect = (SDL_FRect){WINDOW_WIDTH/2, WINDOW_HEIGHT/2, BALL_SIZE, BALL_SIZE};
-    ball->xspeed = BALL_SPEED*SDL_cosf(angle);
-    ball->yspeed = BALL_SPEED*SDL_sinf(angle);
+    ball->xspeed = BALL_SPEED*SPEED_MULT*SDL_cosf(angle);
+    ball->yspeed = BALL_SPEED*SPEED_MULT*SDL_sinf(angle);
 }
 
 void initPlayers(SDL_FRect *player1, SDL_FRect *player2) {
@@ -88,8 +89,8 @@ void initPlayers(SDL_FRect *player1, SDL_FRect *player2) {
 }
 
 void changeBallDirection(Ball *ball, float angle) {
-    ball->xspeed = BALL_SPEED*SDL_cosf(angle);
-    ball->yspeed = BALL_SPEED*SDL_sinf(angle);
+    ball->xspeed = BALL_SPEED*SPEED_MULT*SDL_cosf(angle);
+    ball->yspeed = BALL_SPEED*SPEED_MULT*SDL_sinf(angle);
 }
 
 void renderObjects(SDL_Renderer *renderer, SDL_FRect *player1_rect, SDL_FRect *player2_rect, Ball *ball) {
@@ -97,6 +98,11 @@ void renderObjects(SDL_Renderer *renderer, SDL_FRect *player1_rect, SDL_FRect *p
     char stringified[10];
     sprintf(stringified, "%u - %u", (unsigned int) score >> 16, (unsigned int) score & 0xFFFF);
     SDL_Surface *text = TTF_RenderText_Blended(font, stringified, 0, (SDL_Color) {255, 255, 255, 255});
+
+    if (texture) {
+        SDL_DestroyTexture(texture);
+        texture = NULL;
+    }
     if (text) {
         texture = SDL_CreateTextureFromSurface(renderer, text);
         SDL_DestroySurface(text);
@@ -104,6 +110,8 @@ void renderObjects(SDL_Renderer *renderer, SDL_FRect *player1_rect, SDL_FRect *p
     if (!texture) {
         SDL_Log("Couldn't create text: %s\n", SDL_GetError());
     }
+
+
 
     SDL_FRect rect = {
         .x = WINDOW_WIDTH/2,
@@ -132,10 +140,10 @@ void renderObjects(SDL_Renderer *renderer, SDL_FRect *player1_rect, SDL_FRect *p
 void updatePos(SDL_FRect *player1, SDL_FRect *player2, Ball *ball) {
     const bool *key_states = SDL_GetKeyboardState(NULL);
     // Players
-    if (key_states[SDL_SCANCODE_W]) player1->y = MAX(0.0f, player1->y-CONTROL_SPEED/FRAME_RATE);
-    if (key_states[SDL_SCANCODE_S]) player1->y = MIN(WINDOW_HEIGHT-PLAYER_HEIGHT, player1->y+CONTROL_SPEED/FRAME_RATE);
-    if (key_states[SDL_SCANCODE_UP]) player2->y = MAX(0.0f, player2->y-CONTROL_SPEED/FRAME_RATE);
-    if (key_states[SDL_SCANCODE_DOWN]) player2->y = MIN(WINDOW_HEIGHT-PLAYER_HEIGHT, player2->y+CONTROL_SPEED/FRAME_RATE);
+    if (key_states[SDL_SCANCODE_W]) player1->y = MAX(0.0f, player1->y-SPEED_MULT*CONTROL_SPEED/FRAME_RATE);
+    if (key_states[SDL_SCANCODE_S]) player1->y = MIN(WINDOW_HEIGHT-PLAYER_HEIGHT, player1->y+SPEED_MULT*CONTROL_SPEED/FRAME_RATE);
+    if (key_states[SDL_SCANCODE_UP]) player2->y = MAX(0.0f, player2->y-SPEED_MULT*CONTROL_SPEED/FRAME_RATE);
+    if (key_states[SDL_SCANCODE_DOWN]) player2->y = MIN(WINDOW_HEIGHT-PLAYER_HEIGHT, player2->y+SPEED_MULT*CONTROL_SPEED/FRAME_RATE);
     // Ball
     ball->rect.x += ball->xspeed/FRAME_RATE;
     ball->rect.y += ball->yspeed/FRAME_RATE;
@@ -158,6 +166,7 @@ void checkCollisionsAndUpdateScore(SDL_FRect *player1, SDL_FRect *player2, Ball 
     }
     // reset map on game end
     if (gameEnded) {
+        SPEED_MULT += 0.05f;
         initBall(ball);
         // initPlayers(player1, player2);
         SDL_Delay(500);
